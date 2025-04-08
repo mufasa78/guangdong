@@ -1,7 +1,7 @@
+# Server configuration
+# Minimal configuration to let Streamlit Cloud handle everything
 [server]
 headless = true
-address = "0.0.0.0"
-port = 5000
 
 [theme]
 primaryColor = "#1E88E5"
