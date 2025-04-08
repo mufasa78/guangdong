@@ -90,10 +90,13 @@ with st.sidebar:
 st.title(t('main_title'))
 st.markdown(t('main_description'))
 
-# Check if we're using the uploaded XLS file
+# Display info about data sources
+data_sources = []
 xls_file_path = "data/liudongrenkou.xls"
 if os.path.exists(xls_file_path):
-    st.info(t('using_xls_data'))
+    data_sources.append("Excel")
+data_sources.append("Web Scraping")
+st.info(t('data_sources_info').format(sources=", ".join(data_sources)))
 
 # Load and process data
 data = load_data()
@@ -126,17 +129,17 @@ if data is not None and not data.empty:
     with tab1:
         st.subheader(t('population_flow_map_title'))
         flow_map = create_flow_map(processed_data, selected_cities, analysis_type)
-        st.plotly_chart(flow_map, use_container_width=True)
+        st.plotly_chart(flow_map, use_container_width=True, key="flow_map_chart")
     
     with tab2:
         st.subheader(t('trend_analysis_title'))
         trend_chart = create_trend_chart(processed_data, show_trend_lines, normalize_data)
-        st.plotly_chart(trend_chart, use_container_width=True)
+        st.plotly_chart(trend_chart, use_container_width=True, key="trend_chart")
     
     with tab3:
         st.subheader(t('city_comparison_title'))
         comparison_chart = create_comparison_chart(processed_data, selected_cities)
-        st.plotly_chart(comparison_chart, use_container_width=True)
+        st.plotly_chart(comparison_chart, use_container_width=True, key="comparison_chart")
     
     with tab4:
         st.subheader(t('statistical_data_title'))

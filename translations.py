@@ -139,6 +139,10 @@ TRANSLATIONS = {
         'en': 'Using data from uploaded Excel file',
         'zh': '使用上传的Excel文件中的数据'
     },
+    'data_sources_info': {
+        'en': 'Data is being collected from multiple sources: {sources}',
+        'zh': '数据正在从多个来源收集: {sources}'
+    },
     'data_load_error': {
         'en': 'Error loading data',
         'zh': '数据加载错误'

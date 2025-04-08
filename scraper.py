@@ -257,13 +257,75 @@ def merge_and_clean_data(dataframes):
     if not dataframes:
         return pd.DataFrame()
     
-    # Concatenate all dataframes
-    merged = pd.concat(dataframes, ignore_index=True)
+    # Clean and validate each dataframe before merging
+    valid_dfs = []
     
-    # Remove duplicates (same city and year)
-    merged = merged.drop_duplicates(subset=['city', 'year'])
+    for i, df in enumerate(dataframes):
+        try:
+            # Ensure all dataframes have the required columns
+            if not all(col in df.columns for col in ['city', 'year', 'population']):
+                print(f"Dataframe {i} missing required columns. Columns present: {df.columns}")
+                # Try to infer missing columns if possible
+                if 'city' not in df.columns and '市' in df.columns:
+                    df['city'] = df['市']
+                if 'year' not in df.columns and '年' in df.columns:
+                    df['year'] = df['年']
+                if 'population' not in df.columns and '人口' in df.columns:
+                    df['population'] = df['人口']
+                
+                # Skip if still missing required columns
+                if not all(col in df.columns for col in ['city', 'year', 'population']):
+                    print(f"Skipping dataframe {i} due to missing columns")
+                    continue
+            
+            # Make sure data types are appropriate
+            df['city'] = df['city'].astype(str)
+            df['year'] = df['year'].astype(int)
+            df['population'] = df['population'].astype(float)
+            
+            # Ensure 'change' column exists
+            if 'change' not in df.columns:
+                print(f"Adding missing 'change' column to dataframe {i}")
+                # Try to calculate change if there are multiple years for the same city
+                if len(df.groupby('city')) > 1:
+                    # Sort by year
+                    df = df.sort_values(['city', 'year'])
+                    # Group by city and calculate difference
+                    df['change'] = df.groupby('city')['population'].diff().fillna(0)
+                else:
+                    # Otherwise just set change to 0
+                    df['change'] = 0.0
+            
+            df['change'] = df['change'].astype(float)
+            
+            # Remove any rows with invalid data
+            df = df[(df['year'] > 2000) & (df['year'] < 2030)]  # Reasonable year range
+            df = df[df['population'] > 0]  # Population should be positive
+            
+            valid_dfs.append(df)
+            print(f"Validated dataframe {i}: {len(df)} rows")
+        except Exception as e:
+            print(f"Error processing dataframe {i}: {e}")
+    
+    if not valid_dfs:
+        print("No valid dataframes to merge")
+        return pd.DataFrame()
+    
+    # Concatenate all valid dataframes
+    print(f"Concatenating {len(valid_dfs)} valid dataframes")
+    merged = pd.concat(valid_dfs, ignore_index=True)
+    
+    # Handle duplicate entries (same city and year in different datasets)
+    # Group by city and year, taking the mean of numerical columns
+    grouped = merged.groupby(['city', 'year']).agg({
+        'population': 'mean',
+        'change': 'mean'
+    }).reset_index()
+    
+    print(f"After handling duplicates: {len(grouped)} unique city-year combinations")
     
     # Fill missing values
+    merged = grouped
     merged['population'] = merged['population'].fillna(0)
     merged['change'] = merged['change'].fillna(0)
     
@@ -388,37 +450,43 @@ def load_xls_data():
 
 def scrape_population_data():
     """Main function to scrape population data from multiple sources"""
-    # First try to load data from the XLS file
-    xls_data = load_xls_data()
+    # Get data from all available sources
+    data_sources = []
     
+    # Get data from XLS file
+    xls_data = load_xls_data()
     if not xls_data.empty:
         print(f"Successfully loaded data from XLS file: {len(xls_data)} records")
-        # Process and return the XLS data
-        data = merge_and_clean_data([xls_data])
-        # Save to cache
-        save_to_cache(data)
-        return data
+        data_sources.append(xls_data)
     
-    # If XLS data is not available, try web sources
-    # Try to get data from primary source
+    # Try to get data from primary source (bl.gov.cn)
     bl_data = scrape_bl_gov_cn()
+    if not bl_data.empty:
+        print(f"Successfully scraped data from bl.gov.cn: {len(bl_data)} records")
+        data_sources.append(bl_data)
     
     # Get data from statistics bureau
     stats_data = scrape_stats_gd_gov_cn()
+    if not stats_data.empty:
+        print(f"Successfully scraped data from stats.gd.gov.cn: {len(stats_data)} records")
+        data_sources.append(stats_data)
     
     # Get supplementary data
     supp_data = scrape_supplementary_sources()
+    if not supp_data.empty:
+        print(f"Successfully scraped supplementary data: {len(supp_data)} records")
+        data_sources.append(supp_data)
     
     # Merge and clean the data
-    data_sources = [df for df in [bl_data, stats_data, supp_data] if not df.empty]
-    
     if not data_sources:
         # If no data could be scraped, use synthetic data as a placeholder
         from utils import get_guangdong_cities
         cities = get_guangdong_cities()
         data = generate_synthetic_data(cities)
+        print("No data sources available. Using synthetic data for testing.")
     else:
         data = merge_and_clean_data(data_sources)
+        print(f"Combined data from {len(data_sources)} sources: {len(data)} total records")
     
     # Save to cache
     save_to_cache(data)
