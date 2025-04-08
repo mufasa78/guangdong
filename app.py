@@ -90,6 +90,11 @@ with st.sidebar:
 st.title(t('main_title'))
 st.markdown(t('main_description'))
 
+# Check if we're using the uploaded XLS file
+xls_file_path = "data/liudongrenkou.xls"
+if os.path.exists(xls_file_path):
+    st.info(t('using_xls_data'))
+
 # Load and process data
 data = load_data()
 
@@ -145,11 +150,17 @@ if data is not None and not data.empty:
             mime='text/csv'
         )
         
+        # For Excel download, we need to use BytesIO
+        from io import BytesIO
+        excel_buffer = BytesIO()
+        processed_data.to_excel(excel_buffer, index=False)
+        excel_data = excel_buffer.getvalue()
+        
         st.download_button(
             label=t('download_excel'),
-            data=processed_data.to_excel(index=False).encode('utf-8'),
+            data=excel_data,
             file_name=f"guangdong_population_data_{selected_period}.xlsx",
-            mime='application/vnd.ms-excel'
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
         
         # Display statistical summary

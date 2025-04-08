@@ -135,6 +135,10 @@ TRANSLATIONS = {
         'en': 'Loading population data...',
         'zh': '正在加载人口数据...'
     },
+    'using_xls_data': {
+        'en': 'Using data from uploaded Excel file',
+        'zh': '使用上传的Excel文件中的数据'
+    },
     'data_load_error': {
         'en': 'Error loading data',
         'zh': '数据加载错误'

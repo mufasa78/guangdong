@@ -300,8 +300,106 @@ def merge_and_clean_data(dataframes):
     
     return merged
 
+def load_xls_data():
+    """Load population data from the uploaded XLS file"""
+    xls_file = "data/liudongrenkou.xls"
+    
+    try:
+        if os.path.exists(xls_file):
+            # Load the Excel file
+            print(f"Loading data from {xls_file}")
+            # Try different engines since the file might be an older XLS format
+            try:
+                raw_data = pd.read_excel(xls_file, engine='openpyxl')
+            except Exception as e:
+                print(f"Error with openpyxl: {e}, trying xlrd...")
+                raw_data = pd.read_excel(xls_file, engine='xlrd')
+            
+            # Print the columns for debugging
+            print(f"Columns in Excel file: {raw_data.columns}")
+            
+            # Process the data into our standard format
+            processed_data = []
+            
+            # Assume the file has city names, years, population values
+            # We'll need to infer column names and adjust the processing accordingly
+            for _, row in raw_data.iterrows():
+                # Try to extract data from row based on column position
+                # This is a guess and might need adjustment based on actual file structure
+                try:
+                    city = None
+                    year = None
+                    population = None
+                    change = None
+                    
+                    # Check columns to identify the data
+                    for col in raw_data.columns:
+                        col_lower = str(col).lower()
+                        if '市' in str(col) or 'city' in col_lower:
+                            city = row[col]
+                        elif 'year' in col_lower or '年' in str(col) or '20' in str(col)[:2]:
+                            year = int(str(row[col]).split('.')[0])
+                        elif 'pop' in col_lower or '人口' in str(col):
+                            population = float(row[col])
+                        elif 'change' in col_lower or '变化' in str(col) or '增加' in str(col):
+                            change = float(row[col])
+                    
+                    # If we couldn't identify the columns, use positions as a fallback
+                    if city is None and len(raw_data.columns) > 0:
+                        city = row[0]
+                    if year is None and len(raw_data.columns) > 1:
+                        try:
+                            year = int(float(row[1]))
+                        except:
+                            year = 2022  # Fallback year
+                    if population is None and len(raw_data.columns) > 2:
+                        try:
+                            population = float(row[2])
+                        except:
+                            continue  # Skip row if population can't be parsed
+                    
+                    # If change is not available, set it to 0
+                    if change is None:
+                        change = 0
+                    
+                    # Ensure city ends with 市 if it's not already present
+                    if city and not str(city).endswith('市'):
+                        city = f"{city}市"
+                    
+                    # Only add valid entries
+                    if city and year and population:
+                        processed_data.append({
+                            'city': city,
+                            'year': year,
+                            'population': population,
+                            'change': change
+                        })
+                except Exception as e:
+                    print(f"Error processing row: {e}")
+                    continue
+            
+            return pd.DataFrame(processed_data)
+        else:
+            print(f"XLS file {xls_file} not found")
+            return pd.DataFrame()
+    except Exception as e:
+        print(f"Error loading XLS file: {e}")
+        return pd.DataFrame()
+
 def scrape_population_data():
     """Main function to scrape population data from multiple sources"""
+    # First try to load data from the XLS file
+    xls_data = load_xls_data()
+    
+    if not xls_data.empty:
+        print(f"Successfully loaded data from XLS file: {len(xls_data)} records")
+        # Process and return the XLS data
+        data = merge_and_clean_data([xls_data])
+        # Save to cache
+        save_to_cache(data)
+        return data
+    
+    # If XLS data is not available, try web sources
     # Try to get data from primary source
     bl_data = scrape_bl_gov_cn()
     
