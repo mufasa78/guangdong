@@ -270,11 +270,19 @@ def merge_and_clean_data(dataframes):
     # Sort by city and year
     merged = merged.sort_values(['city', 'year'])
     
-    # Add additional columns
-    merged['growth_rate'] = merged.apply(
-        lambda row: (row['change'] / (row['population'] - row['change'])) * 100 if (row['population'] - row['change']) > 0 else 0, 
-        axis=1
-    )
+    # Add additional columns - calculate growth rate
+    try:
+        merged['growth_rate'] = merged.apply(
+            lambda row: (row['change'] / (row['population'] - row['change'])) * 100 if (row['population'] - row['change']) > 0 else 0, 
+            axis=1
+        )
+    except Exception as e:
+        print(f"Error calculating growth rate: {e}")
+        # Fall back to a simpler calculation if the more complex one fails
+        merged['growth_rate'] = merged.apply(
+            lambda row: (row['change'] / row['population']) * 100 if row['population'] > 0 else 0,
+            axis=1
+        )
     
     # Add migration related columns
     # Group by year to calculate averages

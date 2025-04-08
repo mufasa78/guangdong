@@ -23,18 +23,22 @@ def process_data(data, selected_cities, time_period, analysis_type):
     year_filter = (filtered_data['year'] >= year_start) & (filtered_data['year'] <= year_end)
     filtered_data = filtered_data[year_filter]
     
+    # Check if the flow_type column exists, if not create it based on change values
+    if 'flow_type' not in filtered_data.columns:
+        filtered_data['flow_type'] = filtered_data['change'].apply(
+            lambda x: 'inflow' if x > 0 else 'outflow'
+        )
+    
     # Process based on analysis type
     if "inflow" in analysis_type.lower():
-        # Focus on cities with positive relative growth
-        filtered_data['analysis_value'] = filtered_data.apply(
-            lambda row: row['change'] if row['flow_type'] == 'inflow' else 0,
-            axis=1
+        # Focus on cities with positive change (inflow)
+        filtered_data['analysis_value'] = filtered_data['change'].apply(
+            lambda x: x if x > 0 else 0
         )
     elif "outflow" in analysis_type.lower():
-        # Focus on cities with negative relative growth
-        filtered_data['analysis_value'] = filtered_data.apply(
-            lambda row: -row['change'] if row['flow_type'] == 'outflow' else 0,
-            axis=1
+        # Focus on cities with negative change (outflow)
+        filtered_data['analysis_value'] = filtered_data['change'].apply(
+            lambda x: -x if x < 0 else 0
         )
     else:  # Net migration
         filtered_data['analysis_value'] = filtered_data['change']
@@ -65,20 +69,26 @@ def calculate_statistics(data, confidence_level=0.95):
     stats_dict['avg_annual_flow'] = data['change'].mean() if 'change' in data else 0
     
     # Calculate growth rates
-    if 'growth_rate' in data and not data.empty:
+    if 'growth_rate' in data.columns and not data.empty:
         stats_dict['growth_rate'] = data['growth_rate'].mean()
         
         # Growth rate change (current year vs previous year)
         latest_year = data['year'].max() if 'year' in data else 0
         previous_year = latest_year - 1
         
-        latest_rate = data[data['year'] == latest_year]['growth_rate'].mean()
-        previous_rate = data[data['year'] == previous_year]['growth_rate'].mean()
+        latest_rate = data[data['year'] == latest_year]['growth_rate'].mean() if not data[data['year'] == latest_year].empty else 0
+        previous_rate = data[data['year'] == previous_year]['growth_rate'].mean() if not data[data['year'] == previous_year].empty else 0
         
         if not np.isnan(latest_rate) and not np.isnan(previous_rate):
             stats_dict['growth_rate_change'] = latest_rate - previous_rate
     else:
-        stats_dict['growth_rate'] = 0
+        # Calculate simple growth rate
+        if not data.empty and 'population' in data.columns and 'change' in data.columns:
+            total_population = data['population'].sum()
+            total_change = data['change'].sum()
+            stats_dict['growth_rate'] = (total_change / total_population) * 100 if total_population > 0 else 0
+        else:
+            stats_dict['growth_rate'] = 0
     
     # Calculate confidence intervals if enough data points
     if len(data) > 2 and 'change' in data:

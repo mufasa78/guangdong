@@ -169,13 +169,17 @@ def create_trend_chart(data, show_trend_lines=True, normalize_data=False):
         y_title = 'Population'
     
     # Create the basic line chart
+    hover_data = ['change']
+    if 'growth_rate' in chart_data.columns:
+        hover_data.append('growth_rate')
+        
     fig = px.line(
         chart_data, 
         x='year', 
         y=y_column,
         color='city',
         markers=True,
-        hover_data=['growth_rate', 'change'],
+        hover_data=hover_data,
         title='Population Trends by City'
     )
     
@@ -255,7 +259,13 @@ def create_comparison_chart(data, selected_cities):
         if not city_data.empty:
             total_population = city_data['population'].iloc[-1]  # Latest population
             net_migration = city_data['change'].sum()
-            growth_rate = city_data['growth_rate'].mean()
+            
+            # Check if growth_rate column exists
+            if 'growth_rate' in city_data.columns:
+                growth_rate = city_data['growth_rate'].mean()
+            else:
+                # Calculate simple growth rate
+                growth_rate = (net_migration / total_population) * 100 if total_population > 0 else 0
             
             comparison_data.append({
                 'city': city,
