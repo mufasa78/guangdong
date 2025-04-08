@@ -7,6 +7,7 @@ import os
 from scraper import scrape_population_data, load_cached_data
 from data_processor import process_data, calculate_statistics
 from visualizer import create_flow_map, create_trend_chart, create_comparison_chart
+from advanced_visualizations import create_population_pie_chart, create_growth_bar_chart, create_population_dashboard
 from utils import get_guangdong_cities
 from translations import get_translation, LANGUAGES
 
@@ -326,10 +327,13 @@ if data is not None and not data.empty:
                  delta=f"{stats['growth_rate_change']:.2f}%" if 'growth_rate_change' in stats else None)
     
     # Main visualization tabs
-    tab1, tab2, tab3, tab4 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
         t('population_flow_map'), 
         t('trend_analysis'), 
         t('city_comparison'),
+        t('population_pie_chart'),
+        t('growth_bar_chart'),
+        t('dashboard'),
         t('statistical_data')
     ])
     
@@ -347,8 +351,23 @@ if data is not None and not data.empty:
         st.subheader(t('city_comparison_title'))
         comparison_chart = create_comparison_chart(processed_data, selected_cities)
         st.plotly_chart(comparison_chart, use_container_width=True, key="comparison_chart")
-    
+        
     with tab4:
+        st.subheader(t('population_distribution_title'))
+        pie_chart = create_population_pie_chart(processed_data, selected_cities)
+        st.plotly_chart(pie_chart, use_container_width=True, key="pie_chart")
+        
+    with tab5:
+        st.subheader(t('growth_rate_title'))
+        bar_chart = create_growth_bar_chart(processed_data, selected_cities)
+        st.plotly_chart(bar_chart, use_container_width=True, key="bar_chart")
+        
+    with tab6:
+        st.subheader(t('dashboard_title'))
+        dashboard = create_population_dashboard(processed_data, selected_cities)
+        st.plotly_chart(dashboard, use_container_width=True, key="dashboard_chart")
+    
+    with tab7:
         st.subheader(t('statistical_data_title'))
         st.dataframe(processed_data, use_container_width=True)
         

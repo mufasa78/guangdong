@@ -163,6 +163,18 @@ TRANSLATIONS = {
         'en': 'City Comparison',
         'zh': '城市比较'
     },
+    'population_pie_chart': {
+        'en': 'Population Distribution',
+        'zh': '人口分布'
+    },
+    'growth_bar_chart': {
+        'en': 'Growth Rates',
+        'zh': '增长率'
+    },
+    'dashboard': {
+        'en': 'Dashboard View',
+        'zh': '仪表板视图'
+    },
     'statistical_data': {
         'en': 'Statistical Data',
         'zh': '统计数据'
@@ -180,6 +192,18 @@ TRANSLATIONS = {
     'city_comparison_title': {
         'en': 'City Population Flow Comparison',
         'zh': '城市人口流动比较'
+    },
+    'population_distribution_title': {
+        'en': 'Population Distribution by City',
+        'zh': '城市人口分布'
+    },
+    'growth_rate_title': {
+        'en': 'Annual Growth Rate Comparison',
+        'zh': '年增长率比较'
+    },
+    'dashboard_title': {
+        'en': 'Population Analysis Dashboard',
+        'zh': '人口分析仪表板'
     },
     'statistical_data_title': {
         'en': 'Statistical Data and Analysis',
