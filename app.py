@@ -31,8 +31,91 @@ def toggle_language():
     st.session_state.language = 'zh' if st.session_state.language == 'en' else 'en'
     st.rerun()
 
-# Enhanced data loading with comprehensive caching and error handling
+# Split the data loading into two functions - one for caching the core functionality
+# and another for handling UI elements
+
+# This function is cached and contains no Streamlit UI elements
 @st.cache_data(ttl=7200)  # Extended TTL to 2 hours for better performance
+def _load_data_core(force_refresh=False):
+    """
+    Core data loading function (without UI elements) for caching
+    
+    Returns:
+        tuple: (data, source_info, error_info)
+    """
+    try:
+        # Track data sources successfully loaded
+        data_sources = []
+        source_labels = []
+        errors = []
+        
+        # 1. Try to load from local cache first (fastest)
+        cached_data = load_cached_data()
+        if cached_data is not None and not cached_data.empty:
+            data_sources.append(cached_data)
+            source_labels.append("Cache")
+        
+        # 2. Try loading from the XLS file
+        try:
+            from scraper import load_xls_data
+            xls_data = load_xls_data()
+            if not xls_data.empty:
+                data_sources.append(xls_data)
+                source_labels.append("Excel")
+        except Exception as e:
+            errors.append(f"XLS loading error: {str(e)}")
+        
+        # 3. If still no data or force_refresh, scrape from web sources
+        if not data_sources or force_refresh:
+            # Only scrape the necessary parts to avoid unnecessary web requests
+            from scraper import scrape_bl_gov_cn, scrape_stats_gd_gov_cn, scrape_supplementary_sources
+            
+            # Try each source independently to ensure we get as much data as possible
+            try:
+                bl_data = scrape_bl_gov_cn()
+                if not bl_data.empty:
+                    data_sources.append(bl_data)
+                    source_labels.append("Government")
+            except Exception as e:
+                errors.append(f"Error scraping bl.gov.cn: {str(e)}")
+            
+            try:
+                stats_data = scrape_stats_gd_gov_cn()
+                if not stats_data.empty:
+                    data_sources.append(stats_data)
+                    source_labels.append("Statistics")
+            except Exception as e:
+                errors.append(f"Error scraping stats.gd.gov.cn: {str(e)}")
+            
+            try:
+                supp_data = scrape_supplementary_sources()
+                if not supp_data.empty:
+                    data_sources.append(supp_data)
+                    source_labels.append("Supplementary")
+            except Exception as e:
+                errors.append(f"Error scraping supplementary sources: {str(e)}")
+        
+        # Merge all available data sources
+        if data_sources:
+            from scraper import merge_and_clean_data
+            data = merge_and_clean_data(data_sources)
+            
+            # Save the merged data to cache for future use
+            from scraper import save_to_cache
+            save_to_cache(data)
+            
+            return data, {
+                "sources": source_labels,
+                "count": len(data)
+            }, errors
+        else:
+            return pd.DataFrame(), {"sources": [], "count": 0}, errors + ["No data sources available"]
+            
+    except Exception as e:
+        import traceback
+        return pd.DataFrame(), {"sources": [], "count": 0}, [str(e), traceback.format_exc()]
+
+# This wrapper function handles the UI elements but delegates the actual data loading to the cached function
 def load_data():
     """
     Load data with advanced caching and performance optimizations
@@ -45,94 +128,44 @@ def load_data():
     
     The data is merged from all available sources for comprehensive analysis.
     """
-    try:
-        # First check if we already have data in the Streamlit cache
-        # If not, proceed with loading from other sources
+    force_refresh = st.session_state.get('force_refresh', False)
+    
+    with st.spinner(t('loading_data')):
+        # Call the cached core function
+        data, source_info, errors = _load_data_core(force_refresh=force_refresh)
+    
+    # Reset force refresh flag if it was used
+    if force_refresh:
+        st.session_state.force_refresh = False
+    
+    # Display appropriate UI messages based on the results
+    if source_info["sources"]:
+        # Show toast notifications for each source
+        if "Cache" in source_info["sources"]:
+            st.toast(t('cache_loaded_success'))
+        if "Excel" in source_info["sources"]:
+            st.toast(t('xls_loaded_success'))
+        if "Government" in source_info["sources"]:
+            st.toast(t('bl_gov_loaded_success'))
+        if "Statistics" in source_info["sources"]:
+            st.toast(t('stats_loaded_success'))
+        if "Supplementary" in source_info["sources"]:
+            st.toast(t('supp_loaded_success'))
         
-        # Track data sources successfully loaded
-        data_sources = []
-        source_labels = []
-        
-        # 1. Try to load from local cache first (fastest)
-        with st.spinner(t('loading_data_from_cache')):
-            cached_data = load_cached_data()
-            if cached_data is not None and not cached_data.empty:
-                data_sources.append(cached_data)
-                source_labels.append("Cache")
-                st.toast(t('cache_loaded_success'))
-        
-        # 2. Try loading from the XLS file
-        with st.spinner(t('loading_data_from_xls')):
-            from scraper import load_xls_data
-            xls_data = load_xls_data()
-            if not xls_data.empty:
-                data_sources.append(xls_data)
-                source_labels.append("Excel")
-                st.toast(t('xls_loaded_success'))
-        
-        # 3. If still no data or force_refresh, scrape from web sources
-        if not data_sources or st.session_state.get('force_refresh', False):
-            with st.spinner(t('scraping_data')):
-                # Only scrape the necessary parts to avoid unnecessary web requests
-                from scraper import scrape_bl_gov_cn, scrape_stats_gd_gov_cn, scrape_supplementary_sources
-                
-                # Try each source independently to ensure we get as much data as possible
-                try:
-                    bl_data = scrape_bl_gov_cn()
-                    if not bl_data.empty:
-                        data_sources.append(bl_data)
-                        source_labels.append("Government")
-                        st.toast(t('bl_gov_loaded_success'))
-                except Exception as e:
-                    st.warning(f"Error scraping bl.gov.cn: {str(e)}")
-                
-                try:
-                    stats_data = scrape_stats_gd_gov_cn()
-                    if not stats_data.empty:
-                        data_sources.append(stats_data)
-                        source_labels.append("Statistics")
-                        st.toast(t('stats_loaded_success'))
-                except Exception as e:
-                    st.warning(f"Error scraping stats.gd.gov.cn: {str(e)}")
-                
-                try:
-                    supp_data = scrape_supplementary_sources()
-                    if not supp_data.empty:
-                        data_sources.append(supp_data)
-                        source_labels.append("Supplementary")
-                        st.toast(t('supp_loaded_success'))
-                except Exception as e:
-                    st.warning(f"Error scraping supplementary sources: {str(e)}")
-                
-                # Reset force refresh flag
-                if 'force_refresh' in st.session_state:
-                    st.session_state.force_refresh = False
-        
-        # Merge all available data sources
-        if data_sources:
-            from scraper import merge_and_clean_data
-            data = merge_and_clean_data(data_sources)
-            
-            # Save the merged data to cache for future use
-            from scraper import save_to_cache
-            save_to_cache(data)
-            
-            # Display success message with data sources
-            st.success(t('data_loaded_success').format(
-                sources=", ".join(source_labels),
-                records=len(data)
-            ))
-            
-            return data
-        else:
-            st.error(t('no_data_sources'))
-            return pd.DataFrame()
-            
-    except Exception as e:
-        st.error(f"{t('data_load_error')}: {str(e)}")
-        import traceback
-        st.error(traceback.format_exc())
-        return pd.DataFrame()
+        # Show overall success message
+        st.success(t('data_loaded_success').format(
+            sources=", ".join(source_info["sources"]),
+            records=source_info["count"]
+        ))
+    
+    # Show any errors that occurred
+    for error in errors:
+        st.warning(error)
+    
+    if data.empty:
+        st.error(t('no_data_sources'))
+    
+    return data
 
 # Sidebar for controls
 with st.sidebar:
