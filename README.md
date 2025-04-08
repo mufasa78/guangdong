@@ -1,6 +1,6 @@
 # Guangdong Province Population Flow Analysis System
 
-![Guangdong Population Flow](./assets/guangdong-population-banner.png)
+![Guangdong Population Flow](./assets/guangdong-population-banner.svg)
 
 ## 📋 Project Overview
 
@@ -21,14 +21,16 @@ This comprehensive data analysis system focuses on population flow and migration
 The application is built with a modular architecture that separates concerns for better maintainability:
 
 ```
-├── app.py                # Main Streamlit application
-├── scraper.py            # Web scraping and data collection
-├── data_processor.py     # Data processing and statistical analysis
-├── visualizer.py         # Data visualization components
-├── translations.py       # Multilingual support system
-├── utils.py              # Utility functions
-├── cache/                # Cache directory for data persistence
-└── data/                 # Directory for Excel data files
+├── app.py                     # Main Streamlit application
+├── scraper.py                 # Web scraping and data collection
+├── data_processor.py          # Data processing and statistical analysis
+├── visualizer.py              # Core visualization components
+├── advanced_visualizations.py # Advanced visualization charts and dashboards
+├── translations.py            # Multilingual support system
+├── utils.py                   # Utility functions
+├── assets/                    # Images and static assets
+├── cache/                     # Cache directory for data persistence
+└── data/                      # Directory for Excel data files
 ```
 
 ## 🧠 Algorithms and Models
@@ -68,6 +70,16 @@ The application is built with a modular architecture that separates concerns for
 - **Smoothed Trend Lines**: LOESS (Locally Estimated Scatterplot Smoothing) for trend visualization
 - **Normalization Algorithm**: Data standardization for cross-city comparison
 - **Interactive Tooltip System**: Context-aware information display
+
+#### Distribution Visualization
+- **Dynamic Pie Charts**: Population distribution with pull-out emphasis on key cities
+- **Horizontal Bar Charts**: Growth rate visualization with custom color gradients
+- **Compound Annual Growth Rate (CAGR)**: Algorithm for calculating long-term annual growth
+
+#### Dashboard Integration
+- **Multi-chart Dashboard**: Composite visualization combining multiple chart types
+- **Subplot Management**: Synchronized data visualization across multiple chart types
+- **Responsive Layout**: Dynamic sizing based on data volume and screen dimensions
 
 ### 4. Performance Optimization
 
@@ -248,11 +260,12 @@ All data collected through the application is validated through multiple steps:
 ## 📝 Future Enhancements
 
 Potential future improvements include:
-- Adding more visualization types
 - Expanding to other Chinese provinces
 - Implementing machine learning for population prediction
 - Adding more language support
 - Developing a predictive model for future population trends
+- Adding 3D visualizations for spatiotemporal analysis
+- Creating interactive dashboards for dynamic filtering
 
 ## 📚 References
 
