@@ -16,6 +16,26 @@ TRANSLATIONS = {
         'zh': '本应用程序分析中国广东省的人口流动模式。使用侧边栏控件选择城市、时间段和分析类型。'
     },
     'sidebar_title': {
+        'en': 'Analysis Dashboard',
+        'zh': '分析仪表板'
+    },
+    'about': {
+        'en': 'About',
+        'zh': '关于'
+    },
+    'about_title': {
+        'en': 'About This Project',
+        'zh': '关于此项目'
+    },
+    'about_content': {
+        'en': 'This application analyzes population flow patterns in Guangdong Province using data from multiple sources including government statistics bureaus and Excel files. It provides visualization tools for understanding migration patterns and population changes across all major cities in the province.',
+        'zh': '此应用程序使用来自多个来源（包括政府统计局和Excel文件）的数据分析广东省的人口流动模式。它提供可视化工具，用于理解该省所有主要城市的迁移模式和人口变化。'
+    },
+    'data_controls': {
+        'en': 'Data Controls',
+        'zh': '数据控制'
+    },
+    'analysis_controls': {
         'en': 'Analysis Controls',
         'zh': '分析控制'
     },
@@ -64,6 +84,70 @@ TRANSLATIONS = {
     'refresh_data': {
         'en': 'Refresh Data',
         'zh': '刷新数据'
+    },
+    'force_refresh': {
+        'en': 'Force Refresh',
+        'zh': '强制刷新'
+    },
+    'data_sources_expander': {
+        'en': 'Data Sources',
+        'zh': '数据来源'
+    },
+    'excel_source': {
+        'en': 'Excel File',
+        'zh': 'Excel文件'
+    },
+    'web_scraping_source': {
+        'en': 'Web Scraping',
+        'zh': '网络抓取'
+    },
+    'data_freshness_note': {
+        'en': 'Data is automatically refreshed when you restart the application. Use "Force Refresh" to re-scrape all sources.',
+        'zh': '当您重新启动应用程序时，数据会自动刷新。使用"强制刷新"重新抓取所有来源。'
+    },
+    'select_all': {
+        'en': 'Select All',
+        'zh': '全选'
+    },
+    'select_none': {
+        'en': 'Clear All',
+        'zh': '清除全部'
+    },
+    'filter_cities': {
+        'en': 'Filter cities...',
+        'zh': '筛选城市...'
+    },
+    'available_cities': {
+        'en': 'Available Cities',
+        'zh': '可用城市'
+    },
+    'no_cities_warning': {
+        'en': 'Please select at least one city to continue',
+        'zh': '请至少选择一个城市以继续'
+    },
+    'visualization_options': {
+        'en': 'Visualization Options',
+        'zh': '可视化选项'
+    },
+    'statistical_options': {
+        'en': 'Statistical Options',
+        'zh': '统计选项'
+    },
+    'performance_options': {
+        'en': 'Performance Options',
+        'zh': '性能选项'
+    },
+    'enable_caching': {
+        'en': 'Enable Data Caching',
+        'zh': '启用数据缓存'
+    },
+    'caching_help': {
+        'en': 'Caching improves performance by storing data and calculations locally',
+        'zh': '通过本地存储数据和计算结果，缓存提高性能'
+    },
+    'reset_settings': {
+        'en': 'Reset All Settings',
+        'zh': '重置所有设置'
     },
     
     # Tab names
@@ -134,6 +218,46 @@ TRANSLATIONS = {
     'loading_data': {
         'en': 'Loading population data...',
         'zh': '正在加载人口数据...'
+    },
+    'loading_data_from_cache': {
+        'en': 'Loading data from local cache...',
+        'zh': '正在从本地缓存加载数据...'
+    },
+    'loading_data_from_xls': {
+        'en': 'Loading data from Excel file...',
+        'zh': '正在从Excel文件加载数据...'
+    },
+    'scraping_data': {
+        'en': 'Collecting data from online sources...',
+        'zh': '正在从在线来源收集数据...'
+    },
+    'cache_loaded_success': {
+        'en': 'Successfully loaded data from cache',
+        'zh': '成功从缓存加载数据'
+    },
+    'xls_loaded_success': {
+        'en': 'Successfully loaded data from Excel file',
+        'zh': '成功从Excel文件加载数据'
+    },
+    'bl_gov_loaded_success': {
+        'en': 'Successfully loaded government data',
+        'zh': '成功加载政府数据'
+    },
+    'stats_loaded_success': {
+        'en': 'Successfully loaded statistics bureau data',
+        'zh': '成功加载统计局数据'
+    },
+    'supp_loaded_success': {
+        'en': 'Successfully loaded supplementary data',
+        'zh': '成功加载补充数据'
+    },
+    'data_loaded_success': {
+        'en': 'Successfully loaded data from {sources} sources ({records} records)',
+        'zh': '成功从{sources}来源加载数据 ({records}条记录)'
+    },
+    'no_data_sources': {
+        'en': 'No data sources available',
+        'zh': '没有可用的数据来源'
     },
     'using_xls_data': {
         'en': 'Using data from uploaded Excel file',

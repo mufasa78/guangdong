@@ -1,10 +1,50 @@
 import pandas as pd
 import numpy as np
 from scipy import stats
+import functools
+import hashlib
+import time
+from concurrent.futures import ThreadPoolExecutor
+import multiprocessing
 
+# Cache for storing processed results to avoid redundant calculations
+_CACHE = {}
+_CACHE_TTL = 3600  # 1 hour cache validity
+
+def cache_result(func):
+    """Decorator to cache function results based on parameters"""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        # Create a cache key from arguments
+        key_parts = [str(arg) for arg in args]
+        key_parts.extend([f"{k}={v}" for k, v in sorted(kwargs.items())])
+        cache_key = hashlib.md5(str(key_parts).encode()).hexdigest()
+        
+        # Check if result is in cache and still valid
+        if cache_key in _CACHE:
+            result, timestamp = _CACHE[cache_key]
+            if time.time() - timestamp < _CACHE_TTL:
+                print(f"Using cached result for {func.__name__}")
+                return result
+        
+        # Calculate result and store in cache
+        result = func(*args, **kwargs)
+        _CACHE[cache_key] = (result, time.time())
+        
+        # Limit cache size to prevent memory issues
+        if len(_CACHE) > 100:
+            # Remove oldest entries
+            oldest_keys = sorted(_CACHE.items(), key=lambda x: x[1][1])[:20]
+            for k, _ in oldest_keys:
+                _CACHE.pop(k, None)
+                
+        return result
+    return wrapper
+
+@cache_result
 def process_data(data, selected_cities, time_period, analysis_type):
     """
-    Process population data based on user selections
+    Process population data based on user selections with optimizations
     
     Args:
         data (DataFrame): Raw population data
@@ -51,9 +91,10 @@ def process_data(data, selected_cities, time_period, analysis_type):
     
     return filtered_data
 
+@cache_result
 def calculate_statistics(data, confidence_level=0.95):
     """
-    Calculate statistical metrics from the processed data
+    Calculate statistical metrics from the processed data with optimized performance
     
     Args:
         data (DataFrame): Processed population data
@@ -140,9 +181,10 @@ def calculate_statistics(data, confidence_level=0.95):
     
     return stats_dict
 
+@cache_result
 def calculate_flow_indices(data):
     """
-    Calculate population flow indices for cities
+    Calculate population flow indices for cities with performance optimization
     
     Args:
         data (DataFrame): Processed population data

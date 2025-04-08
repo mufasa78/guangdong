@@ -60,14 +60,14 @@ def save_to_cache(data):
         json.dump(metadata, f)
 
 def extract_population_data_from_text(text):
-    """Extract population data from text content using regex patterns"""
+    """Extract population data from text content using various regex patterns"""
     population_data = []
     
-    # Look for patterns like "XXX市常住人口XXX万人，比上年增加/减少XXX万人"
-    city_pattern = r'(\w+市)[^\d]*([\d\.]+)万人[^，]*，[^增减]*(增加|减少)[^，]*([\d\.]+)万人'
-    matches = re.finditer(city_pattern, text)
+    # Pattern 1: Look for patterns like "XXX市常住人口XXX万人，比上年增加/减少XXX万人"
+    city_pattern1 = r'(\w+市)[^\d]*([\d\.]+)万人[^，]*，[^增减]*(增加|减少)[^，]*([\d\.]+)万人'
+    matches1 = re.finditer(city_pattern1, text)
     
-    for match in matches:
+    for match in matches1:
         city = match.group(1)
         population = float(match.group(2)) * 10000  # Convert from 万人 to actual number
         change_direction = match.group(3)
@@ -84,7 +84,75 @@ def extract_population_data_from_text(text):
             'year': extract_year_from_text(text)
         })
     
-    return population_data
+    # Pattern 2: Look for patterns like "XXX市人口XXX万人，同比增长/下降XX.XX%"
+    city_pattern2 = r'(\w+市)[^\d]*人口[^\d]*([\d\.]+)万人[^，]*，[^增长下降]*(增长|下降)[^，]*([\d\.]+)%'
+    matches2 = re.finditer(city_pattern2, text)
+    
+    for match in matches2:
+        city = match.group(1)
+        population = float(match.group(2)) * 10000  # Convert from 万人 to actual number
+        change_direction = match.group(3)
+        percentage_change = float(match.group(4))
+        
+        # Calculate change amount based on percentage
+        change_amount = (population * percentage_change / 100)
+        
+        # Adjust change amount based on direction
+        if change_direction == '下降':
+            change_amount = -change_amount
+            
+        population_data.append({
+            'city': city,
+            'population': population,
+            'change': change_amount,
+            'year': extract_year_from_text(text)
+        })
+    
+    # Pattern 3: Look for table-like data with city and population figures
+    # This pattern looks for city names followed by numbers in close proximity
+    city_pattern3 = r'([\u4e00-\u9fa5]+市)[^\d\n]{0,20}([\d\.]+)[万千]?人'
+    matches3 = re.finditer(city_pattern3, text)
+    
+    for match in matches3:
+        city = match.group(1)
+        population_str = match.group(2)
+        
+        # Convert to actual number
+        if "万" in match.group(0):
+            population = float(population_str) * 10000
+        elif "千" in match.group(0):
+            population = float(population_str) * 1000
+        else:
+            population = float(population_str)
+            
+        # For this pattern, we don't have change data, so set to 0
+        population_data.append({
+            'city': city,
+            'population': population,
+            'change': 0,
+            'year': extract_year_from_text(text)
+        })
+    
+    # Deduplicate data (keep entry with non-zero change if possible)
+    cities_seen = {}
+    unique_data = []
+    
+    for entry in population_data:
+        city_year = (entry['city'], entry['year'])
+        
+        if city_year not in cities_seen:
+            cities_seen[city_year] = entry
+            unique_data.append(entry)
+        else:
+            # If we have an entry with non-zero change, prefer that one
+            if abs(entry['change']) > 0 and abs(cities_seen[city_year]['change']) == 0:
+                # Remove existing entry
+                unique_data.remove(cities_seen[city_year])
+                # Add new entry
+                cities_seen[city_year] = entry
+                unique_data.append(entry)
+    
+    return unique_data
 
 def extract_year_from_text(text):
     """Extract year information from text"""
@@ -170,31 +238,87 @@ def scrape_stats_gd_gov_cn():
         return pd.DataFrame()
 
 def scrape_supplementary_sources():
-    """Scrape additional data sources"""
-    # List of potential data sources
+    """Scrape additional data sources for comprehensive data collection"""
+    # List of potential data sources with 2022-2023 population statistics
     sources = [
+        # Guangdong Government sources
         "http://www.gd.gov.cn/zwgk/sjfb/",  # Guangdong Government Information Disclosure
         "https://data.gd.gov.cn/",  # Guangdong Open Data Platform
+        "http://tjj.gz.gov.cn/tjgb/qstjgb/",  # Guangzhou Statistics Bureau
+        "http://tjj.sz.gov.cn/xxgk/zfxxgkml/tjsj/tjgb/",  # Shenzhen Statistics Bureau
+        "http://tjj.foshan.gov.cn/tjgb/index.html",  # Foshan Statistics Bureau
+        
+        # News sources with population reports
+        "https://www.southcn.com/node_54a456f7d3/7f1162f91a.html",  # Southern Metropolis Daily
+        "https://www.nfncb.cn/zt/2022GDP/",  # Nanfang City Newspaper
+        
+        # Academic sources
+        "https://www.gzass.cn/info/1013/",  # Guangzhou Academy of Social Sciences
     ]
     
     all_data = []
     
+    # Add specific year-based URLs for annual statistics reports
+    years = [2022, 2021, 2020, 2019, 2018]
+    
+    for year in years:
+        sources.extend([
+            f"http://stats.gd.gov.cn/gdtjnj/{year}/index.html",  # Guangdong Statistical Yearbook
+            f"http://tjj.gz.gov.cn/tjgb/ntjgb/{year}/",  # Guangzhou Annual Reports
+        ])
+    
+    # Process each URL with improved error handling and rate limiting
     for url in sources:
         try:
+            print(f"Attempting to scrape data from: {url}")
+            
+            # Use multiple fetching methods for robustness
+            text = None
+            
+            # Try trafilatura first (best for article content)
             downloaded = trafilatura.fetch_url(url)
             text = trafilatura.extract(downloaded)
             
-            if text:
-                data = extract_population_data_from_text(text)
-                all_data.extend(data)
+            # If trafilatura fails, try requests + BeautifulSoup
+            if not text:
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                }
+                response = requests.get(url, headers=headers, timeout=30)
+                response.raise_for_status()
+                soup = BeautifulSoup(response.content, 'html.parser')
+                text = soup.get_text()
             
-            # Be respectful with scraping
-            time.sleep(3)
+            if text:
+                # Look for population-related sections in the text
+                if any(keyword in text for keyword in ['人口', '常住人口', '流动人口', '迁入', '迁出']):
+                    print(f"Found population information in {url}")
+                    data = extract_population_data_from_text(text)
+                    if data:
+                        print(f"Extracted {len(data)} population data points from {url}")
+                        
+                        # Add source information
+                        for item in data:
+                            item['source'] = url
+                            
+                        all_data.extend(data)
+                else:
+                    print(f"No relevant population data found in {url}")
+            
+            # Be respectful with rate limiting - randomize wait time
+            wait_time = 2 + (hash(url) % 3)  # 2-5 seconds
+            print(f"Waiting {wait_time} seconds before next request")
+            time.sleep(wait_time)
+            
         except Exception as e:
             print(f"Error scraping {url}: {e}")
+            # Wait a bit longer after an error
+            time.sleep(5)
             continue
     
-    return pd.DataFrame(all_data)
+    result_df = pd.DataFrame(all_data) if all_data else pd.DataFrame()
+    print(f"Total supplementary data collected: {len(result_df)} records")
+    return result_df
 
 def generate_synthetic_data(cities, years=None):
     """

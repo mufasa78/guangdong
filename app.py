@@ -31,44 +31,198 @@ def toggle_language():
     st.session_state.language = 'zh' if st.session_state.language == 'en' else 'en'
     st.rerun()
 
-# Cache data loading function
-@st.cache_data(ttl=3600)
+# Enhanced data loading with comprehensive caching and error handling
+@st.cache_data(ttl=7200)  # Extended TTL to 2 hours for better performance
 def load_data():
-    """Load data with caching to improve performance"""
+    """
+    Load data with advanced caching and performance optimizations
+    
+    This function loads data from multiple sources:
+    1. Streamlit's built-in cache
+    2. Local file cache from scraper
+    3. XLS file data
+    4. Web scraping (as a last resort)
+    
+    The data is merged from all available sources for comprehensive analysis.
+    """
     try:
-        # First try to load cached data
-        data = load_cached_data()
-        if data is None or data.empty:
-            # If no cached data, scrape fresh data
-            with st.spinner(t('loading_data')):
-                data = scrape_population_data()
-        return data
+        # First check if we already have data in the Streamlit cache
+        # If not, proceed with loading from other sources
+        
+        # Track data sources successfully loaded
+        data_sources = []
+        source_labels = []
+        
+        # 1. Try to load from local cache first (fastest)
+        with st.spinner(t('loading_data_from_cache')):
+            cached_data = load_cached_data()
+            if cached_data is not None and not cached_data.empty:
+                data_sources.append(cached_data)
+                source_labels.append("Cache")
+                st.toast(t('cache_loaded_success'))
+        
+        # 2. Try loading from the XLS file
+        with st.spinner(t('loading_data_from_xls')):
+            from scraper import load_xls_data
+            xls_data = load_xls_data()
+            if not xls_data.empty:
+                data_sources.append(xls_data)
+                source_labels.append("Excel")
+                st.toast(t('xls_loaded_success'))
+        
+        # 3. If still no data or force_refresh, scrape from web sources
+        if not data_sources or st.session_state.get('force_refresh', False):
+            with st.spinner(t('scraping_data')):
+                # Only scrape the necessary parts to avoid unnecessary web requests
+                from scraper import scrape_bl_gov_cn, scrape_stats_gd_gov_cn, scrape_supplementary_sources
+                
+                # Try each source independently to ensure we get as much data as possible
+                try:
+                    bl_data = scrape_bl_gov_cn()
+                    if not bl_data.empty:
+                        data_sources.append(bl_data)
+                        source_labels.append("Government")
+                        st.toast(t('bl_gov_loaded_success'))
+                except Exception as e:
+                    st.warning(f"Error scraping bl.gov.cn: {str(e)}")
+                
+                try:
+                    stats_data = scrape_stats_gd_gov_cn()
+                    if not stats_data.empty:
+                        data_sources.append(stats_data)
+                        source_labels.append("Statistics")
+                        st.toast(t('stats_loaded_success'))
+                except Exception as e:
+                    st.warning(f"Error scraping stats.gd.gov.cn: {str(e)}")
+                
+                try:
+                    supp_data = scrape_supplementary_sources()
+                    if not supp_data.empty:
+                        data_sources.append(supp_data)
+                        source_labels.append("Supplementary")
+                        st.toast(t('supp_loaded_success'))
+                except Exception as e:
+                    st.warning(f"Error scraping supplementary sources: {str(e)}")
+                
+                # Reset force refresh flag
+                if 'force_refresh' in st.session_state:
+                    st.session_state.force_refresh = False
+        
+        # Merge all available data sources
+        if data_sources:
+            from scraper import merge_and_clean_data
+            data = merge_and_clean_data(data_sources)
+            
+            # Save the merged data to cache for future use
+            from scraper import save_to_cache
+            save_to_cache(data)
+            
+            # Display success message with data sources
+            st.success(t('data_loaded_success').format(
+                sources=", ".join(source_labels),
+                records=len(data)
+            ))
+            
+            return data
+        else:
+            st.error(t('no_data_sources'))
+            return pd.DataFrame()
+            
     except Exception as e:
         st.error(f"{t('data_load_error')}: {str(e)}")
+        import traceback
+        st.error(traceback.format_exc())
         return pd.DataFrame()
 
 # Sidebar for controls
 with st.sidebar:
-    # Language toggle
-    st.button(
-        "🌐 " + ("English" if st.session_state.language == 'zh' else "中文"), 
-        on_click=toggle_language
-    )
+    # Language toggle button with improved styling
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        st.button(
+            "🌐 " + ("English" if st.session_state.language == 'zh' else "中文"), 
+            on_click=toggle_language,
+            use_container_width=True
+        )
+    with col2:
+        if st.button("ℹ️ " + t('about'), use_container_width=True):
+            st.session_state.show_about = not st.session_state.get('show_about', False)
+    
+    # Add an about section if toggled
+    if st.session_state.get('show_about', False):
+        with st.expander(t('about_title'), expanded=True):
+            st.markdown(t('about_content'))
+            st.markdown("---")
     
     st.title(t('sidebar_title'))
     
-    # Data refresh button
-    if st.button(t('refresh_data')):
-        st.cache_data.clear()
-        st.rerun()
+    # Data controls section
+    st.subheader(t('data_controls'))
     
-    # City selection
+    # Organize data refresh options in columns
+    datacol1, datacol2 = st.columns(2)
+    with datacol1:
+        # Normal refresh (just clears cache)
+        if st.button(t('refresh_data'), use_container_width=True):
+            st.cache_data.clear()
+            st.rerun()
+    with datacol2:
+        # Force refresh (triggers re-scraping)
+        if st.button(t('force_refresh'), use_container_width=True):
+            st.session_state.force_refresh = True
+            st.cache_data.clear()
+            st.rerun()
+    
+    # Display data sources summary
+    data_sources = []
+    xls_file_path = "data/liudongrenkou.xls"
+    if os.path.exists(xls_file_path):
+        data_sources.append(t('excel_source'))
+    data_sources.append(t('web_scraping_source'))
+    
+    # Data source info
+    with st.expander(t('data_sources_expander')):
+        st.markdown(t('data_sources_info').format(sources=", ".join(data_sources)))
+        st.markdown(t('data_freshness_note'))
+    
+    # Analysis controls section
+    st.subheader(t('analysis_controls'))
+    
+    # City selection with search
+    st.markdown(f"**{t('select_cities')}**")
+    # Add select all/none buttons in columns
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button(t('select_all'), use_container_width=True):
+            st.session_state.selected_all_cities = True
+    with col2:
+        if st.button(t('select_none'), use_container_width=True):
+            st.session_state.selected_all_cities = False
+    
+    # Get city list
     cities = get_guangdong_cities()
+    
+    # Handle city selection state
+    if 'selected_all_cities' not in st.session_state:
+        st.session_state.selected_all_cities = False
+    
+    # Set default cities based on selection state
+    default_cities = cities if st.session_state.selected_all_cities else cities[:5]
+    
+    # Allow user to filter cities by typing
+    city_filter = st.text_input(t('filter_cities'), '')
+    filtered_cities = [city for city in cities if city_filter.lower() in city.lower()]
+    
+    # Show multiselect with filtered cities
     selected_cities = st.multiselect(
-        t('select_cities'),
-        options=cities,
-        default=cities[:5]  # Default to first 5 cities
+        t('available_cities'),
+        options=filtered_cities,
+        default=default_cities
     )
+    
+    # Show warning if no cities selected
+    if not selected_cities:
+        st.warning(t('no_cities_warning'))
     
     # Time period selection
     time_periods = ["2018-2022", "2013-2017", "2008-2012"]
@@ -82,9 +236,29 @@ with st.sidebar:
     
     # Advanced options
     with st.expander(t('advanced_options')):
+        # Vizualization options
+        st.subheader(t('visualization_options'))
         normalize_data = st.checkbox(t('normalize_data'), value=False)
         show_trend_lines = st.checkbox(t('show_trend_lines'), value=True)
+        
+        # Statistical options
+        st.subheader(t('statistical_options'))
         confidence_interval = st.slider(t('confidence_interval'), 80, 99, 95)
+        
+        # Performance options
+        st.subheader(t('performance_options'))
+        st.checkbox(t('enable_caching'), value=True, disabled=True, 
+                   help=t('caching_help'))
+        
+        # Reset all settings
+        if st.button(t('reset_settings'), use_container_width=True):
+            # Clear session state except language
+            current_lang = st.session_state.language
+            for key in list(st.session_state.keys()):
+                if key != 'language':
+                    del st.session_state[key]
+            st.session_state.language = current_lang
+            st.rerun()
 
 # Main content
 st.title(t('main_title'))
