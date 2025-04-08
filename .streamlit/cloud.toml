@@ -1,0 +1,15 @@
+# Streamlit Cloud specific configuration
+# This file is used when deploying to Streamlit Cloud
+
+[server]
+headless = true
+address = "0.0.0.0"
+# Let Streamlit Cloud handle the port assignment
+# Do not specify port here
+
+[theme]
+primaryColor = "#1E88E5"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F0F2F6"
+textColor = "#262730"
+font = "sans serif"

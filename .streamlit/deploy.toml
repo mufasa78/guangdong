@@ -1,0 +1,11 @@
+# Streamlit Cloud deployment configuration
+
+[deploy]
+# The main script to run
+mainModule = "app.py"
+
+# Optional: Set a custom subdomain for your app
+# customSubdomain = "guangdong-population"
+
+# Optional: Set a title for your app
+appTitle = "Guangdong Population Flow Analysis"
