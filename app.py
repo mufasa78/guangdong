@@ -267,7 +267,7 @@ with st.sidebar:
         st.warning(t('no_cities_warning'))
 
     # Time period selection
-    time_periods = ["2018-2022", "2013-2017", "2008-2012"]
+    time_periods = ["2018-2024", "2013-2017", "2008-2012"]
     selected_period = st.selectbox(t('select_time_period'), time_periods)
 
     # Analysis type
@@ -335,14 +335,15 @@ if data is not None and not data.empty:
         st.metric(t('growth_rate'), f"{stats['growth_rate']:.2f}%",
                  delta=f"{stats['growth_rate_change']:.2f}%" if 'growth_rate_change' in stats else None)
 
-    # Main visualization tabs
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    # Main tabs
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
         t('population_flow_map'),
         t('trend_analysis'),
         t('city_comparison'),
         t('population_pie_chart'),
         t('growth_bar_chart'),
         t('dashboard'),
+        t('migration_reasons'),  # New tab
         t('statistical_data')
     ])
 
@@ -377,6 +378,90 @@ if data is not None and not data.empty:
         st.plotly_chart(dashboard, use_container_width=True, key="dashboard_chart")
 
     with tab7:
+        st.subheader(t('migration_reasons_title'))
+
+        if 'migration_reasons' in stats:
+            # Create tabs for different visualizations
+            reason_tab1, reason_tab2, reason_tab3, reason_tab4, reason_tab5 = st.tabs([
+                t('reason_distribution'),
+                t('reason_sankey'),
+                t('reason_heatmap'),
+                t('reason_timeline'),
+                t('reason_city_profile')
+            ])
+
+            with reason_tab1:
+                # Overall distribution
+                if 'distribution' in stats['migration_reasons']:
+                    st.write(t('overall_distribution'))
+
+                    # Create treemap visualization
+                    from reason_visualizations import create_reason_treemap
+                    treemap_fig = create_reason_treemap(processed_data)
+                    if treemap_fig:
+                        st.plotly_chart(treemap_fig, use_container_width=True)
+
+            with reason_tab2:
+                # Sankey diagram
+                from reason_visualizations import create_reason_sankey
+                sankey_fig = create_reason_sankey(processed_data)
+                if sankey_fig:
+                    st.plotly_chart(sankey_fig, use_container_width=True)
+
+            with reason_tab3:
+                # Heatmap visualization
+                from reason_visualizations import create_reason_heatmap
+                heatmap_fig = create_reason_heatmap(processed_data)
+                if heatmap_fig:
+                    st.plotly_chart(heatmap_fig, use_container_width=True)
+
+            with reason_tab4:
+                # Timeline visualization
+                from reason_visualizations import create_reason_timeline
+                timeline_fig = create_reason_timeline(processed_data)
+                if timeline_fig:
+                    st.plotly_chart(timeline_fig, use_container_width=True)
+
+            with reason_tab5:
+                # City-specific analysis
+                st.write(t('top_reasons_by_city'))
+
+                # Create a city selector for detailed view
+                selected_city = st.selectbox(
+                    t('select_city_analysis'),
+                    options=list(stats['migration_reasons']['by_city'].keys())
+                )
+
+                if selected_city:
+                    # Create two columns for different charts
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        # Pie chart for selected city
+                        city_data = stats['migration_reasons']['by_city'][selected_city]
+                        fig = px.pie(
+                            values=list(city_data['top_reasons'].values()),
+                            names=list(city_data['top_reasons'].keys()),
+                            title=t('migration_reasons_for_city').format(selected_city)
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+
+                    with col2:
+                        # Radar chart for selected city
+                        from reason_visualizations import create_reason_radar
+                        radar_fig = create_reason_radar(processed_data, selected_city)
+                        if radar_fig:
+                            st.plotly_chart(radar_fig, use_container_width=True)
+
+                    # Show statistics
+                    st.metric(
+                        t('total_factors'),
+                        city_data['total_reasons']
+                    )
+        else:
+            st.info(t('no_reasons_data'))
+
+    with tab8:
         st.subheader(t('statistical_data_title'))
         st.dataframe(processed_data, use_container_width=True)
 

@@ -308,6 +308,128 @@ TRANSLATIONS = {
     'footer_text': {
         'en': 'Guangdong Population Flow Analysis - Graduation Project',
         'zh': '广东人口流动分析 - 毕业项目'
+    },
+    
+    # Migration reasons analysis
+    'migration_reasons': {
+        'en': 'Migration Reasons',
+        'zh': '迁移原因'
+    },
+    'migration_reasons_title': {
+        'en': 'Migration Reasons Analysis',
+        'zh': '迁移原因分析'
+    },
+    'overall_distribution': {
+        'en': 'Overall Distribution of Migration Reasons',
+        'zh': '迁移原因整体分布'
+    },
+    'reason_distribution': {
+        'en': 'Distribution of Migration Reasons',
+        'zh': '迁移原因分布'
+    },
+    'top_reasons_by_city': {
+        'en': 'Top Migration Reasons by City',
+        'zh': '各城市主要迁移原因'
+    },
+    'select_city_analysis': {
+        'en': 'Select a city for detailed analysis',
+        'zh': '选择城市进行详细分析'
+    },
+    'migration_reasons_for_city': {
+        'en': 'Migration Reasons Distribution for {}',
+        'zh': '{}迁移原因分布'
+    },
+    'total_factors': {
+        'en': 'Total Migration Factors Identified',
+        'zh': '已识别迁移因素总数'
+    },
+    'no_reasons_data': {
+        'en': 'Migration reason analysis is not available for the selected data range. Try selecting a more recent time period or different cities.',
+        'zh': '所选数据范围内无迁移原因分析。请尝试选择更近的时间段或不同的城市。'
+    },
+    'employment_opportunities': {
+        'en': 'Employment Opportunities',
+        'zh': '就业机会'
+    },
+    'educational_resources': {
+        'en': 'Educational Resources',
+        'zh': '教育资源'
+    },
+    'healthcare_improvements': {
+        'en': 'Healthcare Improvements',
+        'zh': '医疗改善'
+    },
+    'industrial_development': {
+        'en': 'Industrial Development',
+        'zh': '产业发展'
+    },
+    'living_environment': {
+        'en': 'Living Environment',
+        'zh': '居住环境'
+    },
+    'transportation_infrastructure': {
+        'en': 'Transportation Infrastructure',
+        'zh': '交通基础设施'
+    },
+    'policy_support': {
+        'en': 'Policy Support',
+        'zh': '政策支持'
+    },
+    'reason_sankey': {
+        'en': 'Flow Diagram',
+        'zh': '流动图'
+    },
+    'reason_heatmap': {
+        'en': 'Correlation Map',
+        'zh': '相关性图'
+    },
+    'reason_timeline': {
+        'en': 'Time Trends',
+        'zh': '时间趋势'
+    },
+    'reason_city_profile': {
+        'en': 'City Profile',
+        'zh': '城市画像'
+    },
+    'reason_distribution': {
+        'en': 'Distribution',
+        'zh': '分布'
+    },
+    'export_data': {
+        'en': 'Export Data',
+        'zh': '导出数据'
+    },
+    'processing_data': {
+        'en': 'Processing data...',
+        'zh': '正在处理数据...'
+    },
+    'generating_map': {
+        'en': 'Generating population flow map...',
+        'zh': '正在生成人口流动地图...'
+    },
+    'analyzing_trends': {
+        'en': 'Analyzing population trends...',
+        'zh': '正在分析人口趋势...'
+    },
+    'comparing_cities': {
+        'en': 'Comparing city data...',
+        'zh': '正在比较城市数据...'
+    },
+    'analyzing_growth': {
+        'en': 'Analyzing growth patterns...',
+        'zh': '正在分析增长模式...'
+    },
+    'creating_dashboard': {
+        'en': 'Creating analysis dashboard...',
+        'zh': '正在创建分析仪表板...'
+    },
+    'please_load_data': {
+        'en': 'Please wait while data is being loaded...',
+        'zh': '请等待数据加载...'
+    },
+    'growth_analysis': {
+        'en': 'Growth Analysis',
+        'zh': '增长分析'
     }
 }
 
